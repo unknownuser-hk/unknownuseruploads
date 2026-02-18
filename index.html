@@ -10,6 +10,7 @@
             --bg-color: #1e1e1e;
             --text-color: #ffffff;
             --accent-color: #007bff;
+            --disabled-color: #555555; /* Gray color for missing links */
         }
 
         body {
@@ -28,6 +29,8 @@
         #video-list {
             list-style: none;
             padding: 0;
+            max-width: 800px;
+            margin: 0 auto;
         }
 
         .video-item {
@@ -38,6 +41,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            border-left: 5px solid var(--accent-color);
         }
 
         .video-details {
@@ -47,21 +51,34 @@
         .video-title {
             font-size: 1.1rem;
             margin: 0;
+            color: #eee;
         }
 
         .video-date {
             font-size: 0.9rem;
             color: #999;
+            margin-top: 5px;
         }
 
         .watch-button {
             background-color: var(--accent-color);
             color: white;
             border: none;
-            padding: 8px 15px;
+            padding: 10px 18px;
             border-radius: 5px;
             cursor: pointer;
             text-decoration: none;
+            font-weight: 500;
+            transition: background 0.3s;
+            white-space: nowrap;
+            margin-left: 15px;
+        }
+
+        /* Style for when the link is missing */
+        .watch-button.disabled {
+            background-color: var(--disabled-color);
+            cursor: not-allowed;
+            opacity: 0.7;
         }
     </style>
 </head>
@@ -70,10 +87,11 @@
     <h1>Video List</h1>
 
     <ul id="video-list">
-        <!-- Video items will be added here -->
+        <!-- Video items will be added here via JavaScript -->
     </ul>
 
     <script>
+        // Your Google Sheet Configuration
         const spreadsheetID = '1e65QUbx6PCoR8qiCXdLkCys3JYklccVB4xq3wql98JU';
         const tabName = 'Sheet1';
 
@@ -83,6 +101,9 @@
                 const data = await response.json();
                 const videoList = document.getElementById('video-list');
 
+                // Clear the list before adding items
+                videoList.innerHTML = '';
+
                 data.forEach(video => {
                     const listItem = document.createElement('li');
                     listItem.classList.add('video-item');
@@ -90,21 +111,36 @@
                     const videoDetails = document.createElement('div');
                     videoDetails.classList.add('video-details');
 
+                    // 1. Logic for Name
                     const title = document.createElement('h2');
                     title.classList.add('video-title');
-                    title.textContent = video.Name;
+                    // IF name exists, use it. ELSE write "Name not Given"
+                    title.textContent = video.Name ? video.Name : "Name not Given";
 
+                    // 2. Logic for Date
                     const date = document.createElement('p');
                     date.classList.add('video-date');
-                    date.textContent = video.Date;
+                    // IF date exists, use it. ELSE write "date not announced"
+                    date.textContent = video.Date ? video.Date : "date not announced";
 
                     videoDetails.appendChild(title);
                     videoDetails.appendChild(date);
 
+                    // 3. Logic for YouTube Link
                     const watchButton = document.createElement('a');
                     watchButton.classList.add('watch-button');
-                    watchButton.href = video['Youtube Link'];
-                    watchButton.textContent = 'Watch';
+                    
+                    if (video['Youtube Link'] && video['Youtube Link'].trim() !== "") {
+                        // Link is present
+                        watchButton.href = video['Youtube Link'];
+                        watchButton.textContent = 'Watch';
+                        watchButton.target = "_blank"; // Opens in new tab
+                    } else {
+                        // Link is missing
+                        watchButton.href = "javascript:void(0)"; // Makes link do nothing
+                        watchButton.textContent = 'Link not uploaded';
+                        watchButton.classList.add('disabled'); // Apply gray style
+                    }
 
                     listItem.appendChild(videoDetails);
                     listItem.appendChild(watchButton);
@@ -113,6 +149,7 @@
                 });
             } catch (error) {
                 console.error("Error loading videos:", error);
+                document.getElementById('video-list').innerHTML = "<p style='text-align:center;'>Unable to load videos at this time.</p>";
             }
         }
 
